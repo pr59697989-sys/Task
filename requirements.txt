@@ -3,3 +3,6 @@ python-dotenv==1.0.1
 Pillow==9.5.0
 reportlab==4.1.0
 requests==2.31.0
+rembg==2.0.59
+onnxruntime==1.17.1
+numpy==1.26.4
