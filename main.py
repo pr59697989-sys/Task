@@ -11,6 +11,7 @@ from aiogram.types import (
     KeyboardButton,
     FSInputFile
 )
+
 from aiogram.filters import CommandStart
 
 from aiogram.fsm.state import (
@@ -19,53 +20,81 @@ from aiogram.fsm.state import (
 )
 
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
+
+from aiogram.fsm.storage.memory import (
+    MemoryStorage
+)
 
 from PIL import (
     Image,
-    ImageEnhance,
     ImageFilter,
+    ImageEnhance,
     ImageOps
 )
 
-from rembg import remove, new_session
+from rembg import (
+    remove,
+    new_session
+)
 
 from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
+
+from reportlab.lib.utils import (
+    ImageReader
+)
 
 # ==========================================
-# LOAD ENV
+# ENV
 # ==========================================
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv(
+    "BOT_TOKEN"
+)
 
 # ==========================================
 # TEMP
 # ==========================================
 
-os.makedirs("temp", exist_ok=True)
+os.makedirs(
+    "temp",
+    exist_ok=True
+)
 
 # ==========================================
 # LOGGING
 # ==========================================
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO
+)
 
 # ==========================================
 # AI MODEL
 # ==========================================
 
-session = new_session("u2netp")
+# BEST MODEL FOR:
+# - hair
+# - clothes
+# - face edges
+# - passport photos
+
+session = new_session(
+    "isnet-general-use"
+)
 
 # ==========================================
 # BOT
 # ==========================================
 
-bot = Bot(token=BOT_TOKEN)
+bot = Bot(
+    token=BOT_TOKEN
+)
 
-dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher(
+    storage=MemoryStorage()
+)
 
 # ==========================================
 # STATES
@@ -76,8 +105,6 @@ class PhotoState(StatesGroup):
     waiting_page = State()
 
     waiting_count = State()
-
-    waiting_bg = State()
 
     waiting_quality = State()
 
@@ -95,8 +122,16 @@ user_settings = {}
 
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📷 Create Passport Sheet")],
-        [KeyboardButton(text="ℹ Help")]
+        [
+            KeyboardButton(
+                text="📷 Create Passport Sheet"
+            )
+        ],
+        [
+            KeyboardButton(
+                text="ℹ Help"
+            )
+        ]
     ],
     resize_keyboard=True
 )
@@ -109,7 +144,12 @@ main_keyboard = ReplyKeyboardMarkup(
 async def start(message: Message):
 
     await message.answer(
-        "Advanced Passport Photo Bot",
+        "Ultra Advanced Passport Photo Bot\n\n"
+        "• AI Background Removal\n"
+        "• Smart Hair Protection\n"
+        "• Automatic Blue Background\n"
+        "• HD Enhancement\n"
+        "• A4 / 4x6 Printable PDF",
         reply_markup=main_keyboard
     )
 
@@ -118,7 +158,9 @@ async def start(message: Message):
 # ==========================================
 
 @dp.message(F.text == "ℹ Help")
-async def help_handler(message: Message):
+async def help_handler(
+    message: Message
+):
 
     await message.answer(
         "1. Click Create Passport Sheet\n"
@@ -131,16 +173,27 @@ async def help_handler(message: Message):
 # START CREATE
 # ==========================================
 
-@dp.message(F.text == "📷 Create Passport Sheet")
-async def create_sheet_start(
+@dp.message(
+    F.text == "📷 Create Passport Sheet"
+)
+
+async def create_start(
     message: Message,
     state: FSMContext
 ):
 
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="4x6")],
-            [KeyboardButton(text="A4")]
+            [
+                KeyboardButton(
+                    text="4x6"
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="A4"
+                )
+            ]
         ],
         resize_keyboard=True
     )
@@ -150,7 +203,7 @@ async def create_sheet_start(
     )
 
     await message.answer(
-        "Select page size:",
+        "Select paper size:",
         reply_markup=keyboard
     )
 
@@ -158,22 +211,43 @@ async def create_sheet_start(
 # PAGE
 # ==========================================
 
-@dp.message(PhotoState.waiting_page)
+@dp.message(
+    PhotoState.waiting_page
+)
+
 async def page_select(
     message: Message,
     state: FSMContext
 ):
 
-    user_settings[message.from_user.id] = {
+    user_settings[
+        message.from_user.id
+    ] = {
         "page": message.text
     }
 
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="2")],
-            [KeyboardButton(text="4")],
-            [KeyboardButton(text="6")],
-            [KeyboardButton(text="8")]
+            [
+                KeyboardButton(
+                    text="2"
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="4"
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="6"
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="8"
+                )
+            ]
         ],
         resize_keyboard=True
     )
@@ -183,7 +257,7 @@ async def page_select(
     )
 
     await message.answer(
-        "Select number of copies:",
+        "Select copies:",
         reply_markup=keyboard
     )
 
@@ -191,55 +265,33 @@ async def page_select(
 # COUNT
 # ==========================================
 
-@dp.message(PhotoState.waiting_count)
+@dp.message(
+    PhotoState.waiting_count
+)
+
 async def count_select(
     message: Message,
     state: FSMContext
 ):
 
-    user_settings[message.from_user.id]["count"] = int(
+    user_settings[
+        message.from_user.id
+    ]["count"] = int(
         message.text
     )
 
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Remove BG")],
-            [KeyboardButton(text="Keep Original")]
-        ],
-        resize_keyboard=True
-    )
-
-    await state.set_state(
-        PhotoState.waiting_bg
-    )
-
-    await message.answer(
-        "Background option:",
-        reply_markup=keyboard
-    )
-
-# ==========================================
-# BG OPTION
-# ==========================================
-
-@dp.message(PhotoState.waiting_bg)
-async def bg_option(
-    message: Message,
-    state: FSMContext
-):
-
-    remove_bg = (
-        message.text == "Remove BG"
-    )
-
-    user_settings[message.from_user.id][
-        "remove_bg"
-    ] = remove_bg
-
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="HD")],
-            [KeyboardButton(text="Ultra HD")]
+            [
+                KeyboardButton(
+                    text="HD"
+                )
+            ],
+            [
+                KeyboardButton(
+                    text="Ultra HD"
+                )
+            ]
         ],
         resize_keyboard=True
     )
@@ -257,15 +309,18 @@ async def bg_option(
 # QUALITY
 # ==========================================
 
-@dp.message(PhotoState.waiting_quality)
+@dp.message(
+    PhotoState.waiting_quality
+)
+
 async def quality_select(
     message: Message,
     state: FSMContext
 ):
 
-    user_settings[message.from_user.id][
-        "quality"
-    ] = message.text
+    user_settings[
+        message.from_user.id
+    ]["quality"] = message.text
 
     await state.set_state(
         PhotoState.waiting_photo
@@ -277,26 +332,124 @@ async def quality_select(
     )
 
 # ==========================================
-# REMOVE BG
+# ADVANCED BG REMOVE
 # ==========================================
 
-def remove_background(input_path):
+def ultra_remove_bg(
+    input_path
+):
 
-    image = Image.open(input_path).convert(
+    # ======================================
+    # OPEN
+    # ======================================
+
+    image = Image.open(
+        input_path
+    ).convert(
         "RGBA"
     )
 
+    # ======================================
+    # PRE ENHANCE
+    # ======================================
+
+    image = ImageEnhance.Sharpness(
+        image
+    ).enhance(1.15)
+
+    image = ImageEnhance.Contrast(
+        image
+    ).enhance(1.08)
+
+    # ======================================
+    # AI REMOVE
+    # ======================================
+
     output = remove(
+
         image,
-        session=session
+
+        session=session,
+
+        alpha_matting=True,
+
+        alpha_matting_foreground_threshold=240,
+
+        alpha_matting_background_threshold=10,
+
+        alpha_matting_erode_size=8
     )
+
+    output = output.convert(
+        "RGBA"
+    )
+
+    # ======================================
+    # IMPROVE MASK
+    # ======================================
+
+    r, g, b, a = output.split()
+
+    # smooth edges
+
+    a = a.filter(
+        ImageFilter.GaussianBlur(1)
+    )
+
+    # remove noise
+
+    a = a.filter(
+        ImageFilter.MedianFilter(3)
+    )
+
+    # improve edges
+
+    a = ImageEnhance.Contrast(
+        a
+    ).enhance(1.3)
+
+    output.putalpha(a)
+
+    # ======================================
+    # AUTO BLUE BG
+    # ======================================
+
+    blue_bg = Image.new(
+
+        "RGBA",
+
+        output.size,
+
+        (
+            67,
+            142,
+            219,
+            255
+        )
+    )
+
+    final = Image.alpha_composite(
+        blue_bg,
+        output
+    )
+
+    final = final.convert(
+        "RGB"
+    )
+
+    # ======================================
+    # SAVE
+    # ======================================
 
     output_path = input_path.replace(
         ".jpg",
-        "_nobg.png"
+        "_blue.jpg"
     )
 
-    output.save(output_path)
+    final.save(
+        output_path,
+        quality=100
+    )
 
     return output_path
 
@@ -304,23 +457,30 @@ def remove_background(input_path):
 # ENHANCE
 # ==========================================
 
-def enhance_image(img, quality):
+def enhance_image(
+    img,
+    quality
+):
 
     if quality == "HD":
 
         img = ImageEnhance.Sharpness(
             img
-        ).enhance(1.5)
+        ).enhance(1.6)
+
+        img = ImageEnhance.Contrast(
+            img
+        ).enhance(1.08)
 
     elif quality == "Ultra HD":
 
         img = ImageEnhance.Sharpness(
             img
-        ).enhance(2.2)
+        ).enhance(2.4)
 
         img = ImageEnhance.Contrast(
             img
-        ).enhance(1.2)
+        ).enhance(1.18)
 
         img = img.filter(
             ImageFilter.DETAIL
@@ -329,10 +489,27 @@ def enhance_image(img, quality):
     return img
 
 # ==========================================
+# PASSPORT FIT
+# ==========================================
+
+def fit_passport(img):
+
+    return ImageOps.fit(
+        img,
+        (
+            413,
+            531
+        )
+    )
+
+# ==========================================
 # CREATE SHEET
 # ==========================================
 
-def create_sheet(image_path, settings):
+def create_sheet(
+    image_path,
+    settings
+):
 
     page = settings["page"]
 
@@ -352,30 +529,21 @@ def create_sheet(image_path, settings):
 
     sheet = Image.new(
         "RGB",
-        (sheet_w, sheet_h),
+        (
+            sheet_w,
+            sheet_h
+        ),
         "white"
     )
 
-    img = Image.open(image_path)
+    img = Image.open(
+        image_path
+    ).convert(
+        "RGB"
+    )
 
-    if img.mode == "RGBA":
-
-        bg = Image.new(
-            "RGBA",
-            img.size,
-            (255,255,255,255)
-        )
-
-        img = Image.alpha_composite(
-            bg,
-            img
-        )
-
-    img = img.convert("RGB")
-
-    img = ImageOps.fit(
-        img,
-        (413,531)
+    img = fit_passport(
+        img
     )
 
     img = enhance_image(
@@ -387,7 +555,9 @@ def create_sheet(image_path, settings):
 
     cols = max(
         1,
-        sheet_w // (413 + spacing)
+        sheet_w // (
+            413 + spacing
+        )
     )
 
     for i in range(copies):
@@ -404,19 +574,22 @@ def create_sheet(image_path, settings):
             531 + spacing
         )
 
-        sheet.paste(img, (x, y))
+        sheet.paste(
+            img,
+            (
+                x,
+                y
+            )
+        )
 
     output_sheet = image_path.replace(
-        ".png",
-        "_sheet.jpg"
-    ).replace(
         ".jpg",
         "_sheet.jpg"
     )
 
     sheet.save(
         output_sheet,
-        quality=95
+        quality=100
     )
 
     return output_sheet
@@ -425,7 +598,10 @@ def create_sheet(image_path, settings):
 # PDF
 # ==========================================
 
-def create_pdf(image_path, page):
+def create_pdf(
+    image_path,
+    page
+):
 
     if page == "A4":
 
@@ -444,12 +620,19 @@ def create_pdf(image_path, page):
 
     c = canvas.Canvas(
         pdf_path,
-        pagesize=(pdf_w, pdf_h)
+        pagesize=(
+            pdf_w,
+            pdf_h
+        )
     )
 
-    img = Image.open(image_path)
+    img = Image.open(
+        image_path
+    )
 
-    img_reader = ImageReader(img)
+    img_reader = ImageReader(
+        img
+    )
 
     c.drawImage(
         img_reader,
@@ -491,43 +674,47 @@ async def photo_handler(
 
         user_id = message.from_user.id
 
-        input_path = f"temp/{user_id}.jpg"
+        input_path = (
+            f"temp/{user_id}.jpg"
+        )
 
         await bot.download_file(
             file.file_path,
             input_path
         )
 
-        settings = user_settings[user_id]
+        settings = user_settings[
+            user_id
+        ]
 
-        final_image = input_path
-
-        # BG REMOVE
-
-        if settings["remove_bg"]:
-
-            await message.answer(
-                "AI removing background..."
-            )
-
-            try:
-
-                final_image = remove_background(
-                    input_path
-                )
-
-            except Exception as bg_error:
-
-                await message.answer(
-                    f"BG remove failed:\n{bg_error}\nUsing original image."
-                )
-
-                final_image = input_path
-
-        # SHEET
+        # ==================================
+        # AI REMOVE BG
+        # ==================================
 
         await message.answer(
-            "Creating printable sheet..."
+            "Ultra AI removing background..."
+        )
+
+        try:
+
+            final_image = ultra_remove_bg(
+                input_path
+            )
+
+        except Exception as e:
+
+            await message.answer(
+                f"AI failed:\n{e}\nUsing original image."
+            )
+
+            final_image = input_path
+
+        # ==================================
+        # CREATE SHEET
+        # ==================================
+
+        await message.answer(
+            "Creating HD printable sheet..."
         )
 
         sheet = create_sheet(
@@ -535,7 +722,9 @@ async def photo_handler(
             settings
         )
 
+        # ==================================
         # PDF
+        # ==================================
 
         await message.answer(
             "Generating PDF..."
@@ -546,11 +735,15 @@ async def photo_handler(
             settings["page"]
         )
 
+        # ==================================
         # SEND
+        # ==================================
 
         await message.answer_document(
             FSInputFile(pdf),
-            caption="Your printable PDF is ready."
+            caption=(
+                "Printable passport PDF ready."
+            )
         )
 
         await state.clear()
@@ -567,7 +760,9 @@ async def photo_handler(
 
 async def main():
 
-    await dp.start_polling(bot)
+    await dp.start_polling(
+        bot
+    )
 
 if __name__ == "__main__":
 
