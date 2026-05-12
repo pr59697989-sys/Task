@@ -90,7 +90,7 @@ dp = Dispatcher(
 # FAST + GOOD QUALITY
 
 session = new_session(
-    "u2netp"
+    "isnet-general-use"
 )
 
 # ======================================================
