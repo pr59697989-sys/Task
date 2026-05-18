@@ -4,7 +4,7 @@ NexAuth — Telegram TOTP Authenticator Bot  (Advanced Edition)
 Features
 ────────
 • 100 % button-driven — zero inline text instructions
-• Add TOTP via QR photo  (pyzbar + Pillow decode on-device)
+• Add TOTP via QR photo  (zxingcpp + Pillow — pure Python, no libzbar needed)
 • Add TOTP via otpauth:// URI  (paste)
 • Add TOTP via raw base32 secret key  (paste)
 • Search / find account by name
@@ -38,8 +38,8 @@ from typing import Optional
 import pyotp
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from dotenv import load_dotenv
+import zxingcpp
 from PIL import Image
-from pyzbar.pyzbar import decode as qr_decode
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import DuplicateKeyError
 from telegram import (
@@ -277,12 +277,12 @@ def parse_b32(text: str) -> Optional[str]:
 
 
 def decode_qr_image(image_bytes: bytes) -> Optional[str]:
-    """Decode QR code from image bytes; return otpauth URI or None."""
+    """Decode QR code from image bytes using zxingcpp (pure Python, no libzbar needed)."""
     try:
-        img     = Image.open(io.BytesIO(image_bytes))
-        results = qr_decode(img)
+        img     = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        results = zxingcpp.read_barcodes(img)
         for r in results:
-            data = r.data.decode("utf-8", errors="ignore")
+            data = r.text
             if data.lower().startswith("otpauth://"):
                 return data
     except Exception as e:
