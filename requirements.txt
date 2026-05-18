@@ -1,5 +1,6 @@
-aiogram==3.7.0
-motor==3.5.1
+python-telegram-bot==21.6
+pymongo==4.7.3
+pyotp==2.9.0
+qrcode[pil]==7.4.2
+cryptography==42.0.8
 python-dotenv==1.0.1
-apscheduler==3.10.4
-pytz==2024.1
