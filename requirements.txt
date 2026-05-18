@@ -1,5 +1,0 @@
-python-telegram-bot[job-queue]==21.6
-pymongo==4.7.3
-pyotp==2.9.0
-cryptography==42.0.8
-python-dotenv==1.0.1
