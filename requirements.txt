@@ -8,4 +8,4 @@ cryptography==43.0.1
 pymongo==4.8.0
 python-dotenv==1.0.1
 Pillow==10.4.0
-zxing-cpp==2.2.1
+zxing-cpp==2.2.0
